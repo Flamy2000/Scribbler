@@ -7,8 +7,7 @@ import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
 
 public class TemplateSearch{
-    public static BufferedImage templateSearch(BufferedImage screenshot, String[] templatePath) {
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    public static BufferedImage templateSearch(BufferedImage screenshot, String[] templatePath, Scalar color) {
         try {
 
             // Convert the screenshot to Mat
@@ -40,14 +39,54 @@ public class TemplateSearch{
                 Point matchLoc = mmr.maxLoc;
 
                 // Draw a rectangle around the match
-                Imgproc.rectangle(screenshotMat, matchLoc, new Point(matchLoc.x + template.cols(), matchLoc.y + template.rows()), new Scalar(0, 0, 255), 2);
+                Imgproc.rectangle(screenshotMat, matchLoc, new Point(matchLoc.x + template.cols(), matchLoc.y + template.rows()), color, 2);
             }
-
-
-
 
             // Convert the result back to BufferedImage
             return convertToBufferedImage(screenshotMat);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static Point[] templateSearch(BufferedImage screenshot, String[] templatePaths) {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+        try {
+
+            // Convert the screenshot to Mat
+            Mat screenshotMat = convertToMat(screenshot);
+
+            // Convert the screenshot to grayscale
+            Mat screenshotGray = new Mat();
+            Imgproc.cvtColor(screenshotMat, screenshotGray, Imgproc.COLOR_BGR2GRAY);
+
+            Point[] points = new Point[templatePaths.length];
+            int i = 0;
+            // template
+            for (String path : templatePaths){
+                // Load the template image
+                Mat template = Imgcodecs.imread(path);
+
+                // Convert the template to grayscale
+                Mat templateGray = new Mat();
+                Imgproc.cvtColor(template, templateGray, Imgproc.COLOR_BGR2GRAY);
+
+                // Perform template matching
+                Mat result = new Mat();
+                Imgproc.matchTemplate(screenshotGray, templateGray, result, Imgproc.TM_CCOEFF_NORMED);
+
+                // Set a threshold (adjust as needed)
+                double threshold = 1.0;
+
+                // Find locations where the result is above the threshold
+                Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
+                points[i++] = mmr.maxLoc;
+            }
+
+            // Convert the result back to BufferedImage
+            return points;
 
         } catch (Exception e) {
             e.printStackTrace();

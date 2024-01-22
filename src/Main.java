@@ -1,17 +1,14 @@
+import org.opencv.core.Core;
+import org.opencv.core.Point;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.List;
 
 import javax.swing.*;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 
 public class Main {
     public static void main (String[]args) {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
         BufferedImage img;
         try {
             img = ScreenCapture.capture();
@@ -20,22 +17,8 @@ public class Main {
             return;
         }
 
-        String[] paths = {"img\\btm_right.png", "img\\top_left.png"};
-        BufferedImage resultImage = TemplateSearch.templateSearch(img, paths);
-
-        displayImage(resultImage);
-
-        // Gartic:
-        // give image
-
-        // Scribbler
-        // Draw:
-        // get bounds from gartic()
-        // scale image down or crop if it doesnt fit
-        // (call on color approximator to find colors)
-        // call on gartic to find color locations
-        // click on respective color
-        // using bounds given by gartic draw the image
+        Scribbler scribbler = new Scribbler();
+        scribbler.setBounds(img);
 
     }
 
