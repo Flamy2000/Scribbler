@@ -1,53 +1,38 @@
 package com.logicerror;
 
 import org.opencv.core.Core;
-import org.opencv.core.Scalar;
 
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.util.Arrays;
-
-import javax.swing.*;
 
 public class Main {
-    public static void main (String[]args) {
+    public static void main (String[]args) throws AWTException, InterruptedException {
         // load OpenCV
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
-        Picture pic = new Picture("src/res/img/SampleImages/desktop.jpg");
-        pic.scalePercent(1, 1);
-        pic.show();
+        Scribbler scribbler = new Scribbler();
+//        scribbler.testBounds();
 
-        Gartic board = new Gartic();
-//        System.out.println(Arrays.toString(board.getBoundingImgs()));
 
-//        BufferedImage img;
-//        try {
-//            img = ScreenCapture.capture();
-//        } catch (AWTException ex) {
-//            System.out.println("failed");
-//            return;
-//        }
-//
-//        Scribbler scribbler = new Scribbler();
-//        scribbler.setBounds(img);
-//
-//        displayImage(TemplateSearch.templateSearch(img, board.getBoundingImgs(), new Scalar(0, 255, 0)));
+        Picture pic = new Picture(System.getProperty("user.dir") + "\\src\\res\\img\\SampleImages\\forestFireRC.png");
+//        pic.scalePercent(0.25f, 0.25f);
 
+//        pic.degrade(2f);
+
+        Color[] palette = scribbler.getColors();
+        ColorApproximation ca = new ColorApproximation(pic, palette);
+        Picture approxPic = ca.approximateColorsPicture();
+
+//        EdgeMagnitudePicture edgeMagPic = new EdgeMagnitudePicture(approxPic);
+
+//        approxPic.show();
+//        edgeMagPic.getEdgeMagnitudeImage().show();
+
+
+        scribbler.setOffset(200, 267);
+        scribbler.setRobotDelay(5);
+        Thread.sleep(1500);
+        scribbler.printPicture(approxPic);
+
+//        scribbler.printPicture(approxPic, edgeMagPic.getEdgeMagnitudes());
     }
-
-    private static void displayImage(BufferedImage image) {
-        if (image != null) {
-            ImageIcon icon = new ImageIcon(image);
-            JFrame frame = new JFrame("Result");
-            frame.setLayout(new FlowLayout());
-            frame.setSize(image.getWidth(), image.getHeight());
-            JLabel lbl = new JLabel();
-            lbl.setIcon(icon);
-            frame.add(lbl);
-            frame.setVisible(true);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        }
-    }
-
 }

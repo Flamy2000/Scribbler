@@ -1,26 +1,37 @@
 package com.logicerror;
 
+import java.awt.*;
+import java.util.HashMap;
+
 public class DrawingBoard {
+    protected Picture BTM_RIGHT;
+    protected Picture TOP_LEFT;
 
-
-    protected String BTM_RIGHT;
-    protected String TOP_LEFT;
-
-    protected static String[] COLORS;
+    protected HashMap<Color, Picture> colorImageHashMap;
 
     public DrawingBoard(){
-        BTM_RIGHT = "";
-        TOP_LEFT = "";
-        COLORS = new String[]{"000000"};
+//        BTM_RIGHT = new Picture("");
+//        TOP_LEFT = new Picture("");
+        colorImageHashMap = new HashMap<Color, Picture>();
     }
 
-    public String[] getBoundingImgs(){
-        return new String[]{BTM_RIGHT, TOP_LEFT};
+    public Picture[] getBoundingImgs(){
+        return new Picture[]{BTM_RIGHT, TOP_LEFT};
     }
 
+    public HashMap<Color, Picture> getColorImages(){
+        return colorImageHashMap;
+    }
 
-//    public static Point getColors(){
-////        HashMap<Integer, Color> colorRef = new HashMap<>();
-//
-//    }
+    public Color[] getColors(){
+        return colorImageHashMap.keySet().toArray(new Color[0]);
+    }
+
+    public Picture getColorPicture(int r, int g, int b){
+        return colorImageHashMap.get(new Color(r, g, b));
+    }
+
+    public Picture getColorPicture(Color color){
+        return colorImageHashMap.get(color);
+    }
 }

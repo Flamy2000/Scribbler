@@ -1,58 +1,107 @@
 package com.logicerror;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.core.Point;
 import org.opencv.imgproc.Imgproc;
 import java.awt.image.DataBufferByte;
-import java.awt.image.DataBufferInt;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TemplateSearch{
-    private static boolean grayscale = false;
-    public static void setGrayscale(boolean grayscale){
-        TemplateSearch.grayscale = grayscale;
+    private boolean grayscale = false;
+    public void setGrayscale(boolean grayscale){
+        this.grayscale = grayscale;
     }
 
-    private static double threshold = 0.5f;
-    public static void setThreshold(double threshold){
-        TemplateSearch.threshold = threshold;
+    private double threshold = 0.75f;
+    public void setThreshold(double threshold){
+        this.threshold = threshold;
     }
 
-    public static BufferedImage templateSearch(BufferedImage screenshot, String[] templatePaths, Scalar color) {
+    private double startScale = 0.5f;
+    private double endScale = 2f;
+    private double scalingInterval = 0.5f;
+    private double recentMatchScale = 1f;
+    public void setScalingFactors(double start, double end, double interval){
+        startScale = start;
+        endScale = end;
+        scalingInterval = interval;
+    }
+
+    public double getRecentMatchScale(){
+        return recentMatchScale;
+    }
+
+    public BufferedImage templateSearch(BufferedImage screenshot, Picture[] templatePics, Color color) {
         // Convert the screenshot to Mat
         Mat screenshotMat = convertToMat(screenshot);
-        for (String path : templatePaths) {
-            Mat template = Imgcodecs.imread(path);
-            Point point = templateSearch(screenshot, path);
-            Imgproc.rectangle(screenshotMat, point, new Point(point.x + template.cols(), point.y + template.rows()), color, 2);
+        for (Picture pic : templatePics) {
+            // Convert the screenshot to Mat
+            Mat template = convertToMat(pic.getBufferedImage());
+            Point point = templateSearch(screenshot, pic);
+            Scalar scalar = new Scalar(color.getRed(), color.getGreen(), color.getBlue());
+            Imgproc.rectangle(screenshotMat, new Point(point.x - template.cols()* recentMatchScale *0.5,
+                    point.y - template.rows()* recentMatchScale *0.5),
+                    new Point(point.x + template.cols()* recentMatchScale *0.5,
+                            point.y + template.rows()* recentMatchScale *0.5), scalar, 2);
         }
 
         // Convert the result back to BufferedImage
         return convertToBufferedImage(screenshotMat);
     }
 
-    public static Point[] templateSearch(BufferedImage screenshot, String[] templatePaths) {
-        Point[] points = new Point[templatePaths.length];
-        for (int i = 0; i < templatePaths.length; i++){
-            points[i] = templateSearch(screenshot, templatePaths[i]);
+    public BufferedImage templateSearch(BufferedImage screenshot, Picture templatePic, Color color) {
+        // Convert the screenshot to Mat
+        Mat screenshotMat = convertToMat(screenshot);
+        Mat template = convertToMat(templatePic.getBufferedImage());
+        Point point = templateSearch(screenshot, templatePic);
+        Scalar scalar = new Scalar(color.getRed(), color.getGreen(), color.getBlue());
+        Imgproc.rectangle(screenshotMat, new Point(point.x - template.cols()* recentMatchScale *0.5,
+                        point.y - template.rows()* recentMatchScale *0.5),
+                new Point(point.x + template.cols()* recentMatchScale *0.5,
+                        point.y + template.rows()* recentMatchScale *0.5), scalar, 2);
+        // Convert the result back to BufferedImage
+        return convertToBufferedImage(screenshotMat);
+    }
+
+    public Point[] templateSearch(BufferedImage screenshot, Picture[] templatePics) {
+        Point[] points = new Point[templatePics.length];
+        for (int i = 0; i < templatePics.length; i++){
+            points[i] = templateSearch(screenshot, templatePics[i]);
         }
 
         return points;
     }
 
-    public static Point templateSearch(BufferedImage screenshot, String templatePath) {
-        try {
-            Point point = new Point();
+    public Point templateSearch(BufferedImage screenshot, Picture templatePic) {
 
-            // Convert the screenshot to Mat
-            Mat screenshotMat = convertToMat(screenshot);
+        Point point = new Point();
 
-            // Load the template image
-            Mat template = Imgcodecs.imread(templatePath);
+        // Convert the screenshot to Mat
+        Mat screenshotMat = convertToMat(screenshot);
+
+        // Load the template image
+        Mat template = convertToMat(templatePic.getBufferedImage());
+
+
+        // Perform template matching
+//            Mat result = new Mat();
+
+        // Iterate over different scales
+        double bestMatchValue = Double.MIN_VALUE;
+        Point bestMatch = null;
+        Mat bestResizedTemplate = null;
+
+
+        for (double scale = startScale; scale <= endScale; scale += scalingInterval) {
+            // Resize the template image
+            Mat resizedTemplate = new Mat();
+            Imgproc.resize(template, resizedTemplate, new Size(template.cols() * scale, template.rows() * scale));
 
             // Perform template matching
             Mat result = new Mat();
-
             if (grayscale){
                 // Convert the screenshot to grayscale
                 Mat screenshotGray = new Mat();
@@ -60,48 +109,60 @@ public class TemplateSearch{
 
                 // Convert the template to grayscale
                 Mat templateGray = new Mat();
-                Imgproc.cvtColor(template, templateGray, Imgproc.COLOR_BGR2GRAY);
+                Imgproc.cvtColor(resizedTemplate, templateGray, Imgproc.COLOR_BGR2GRAY);
                 Imgproc.matchTemplate(screenshotGray, templateGray, result, Imgproc.TM_CCOEFF_NORMED);
             }else{
-                Imgproc.matchTemplate(screenshotMat, template, result, Imgproc.TM_CCOEFF_NORMED);
+                Imgproc.matchTemplate(screenshotMat, resizedTemplate, result, Imgproc.TM_CCOEFF_NORMED);
             }
 
-            // Find locations where the result is above the threshold
+            // Find the maximum match value
             Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
 
-            if (mmr.maxVal >= threshold) {
-                point = mmr.maxLoc;
+            if (mmr.maxVal > bestMatchValue) {
+                bestMatchValue = mmr.maxVal;
+                bestMatch = mmr.maxLoc;
+                recentMatchScale = scale;
+                bestResizedTemplate = resizedTemplate;
             }
+        }
 
-            // Convert the result back to BufferedImage
-            return point;
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        try {
+            // If a match is found above the threshold, return the coordinates
+            if (bestMatchValue >= threshold) {
+                return new Point(bestMatch.x + (double) bestResizedTemplate.cols() / 2, bestMatch.y + (double) bestResizedTemplate.rows() / 2);
+            } else {
+                return null; // No match found
+            }
+        }catch (NullPointerException ex){
+            Logger.getLogger(TemplateSearch.class.getName()).log(Level.SEVERE, "Template search failed", ex);
             return null;
         }
+
     }
 
 
-    private static Mat convertToMat(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
+    private static Mat convertToMat(BufferedImage bi) {
+        int width = bi.getWidth();
+        int height = bi.getHeight();
+        int type = CvType.CV_8UC3; // We assume 3 channels (RGB)
 
-        int[] data = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+        Mat mat = new Mat(height, width, type);
 
-        Mat mat = new Mat(height, width, CvType.CV_8UC3);
+        int[] data = new int[width * height];
+        bi.getRGB(0, 0, width, height, data, 0, width);
 
         byte[] byteData = new byte[width * height * 3];
 
-        for (int i = 0, j = 0; i < data.length; i++) {
+        // Convert int pixel values to byte
+        int byteIndex = 0;
+        for (int i = 0; i < data.length; i++) {
             int pixel = data[i];
-            byteData[j++] = (byte) (pixel & 0xFF);         // Blue
-            byteData[j++] = (byte) ((pixel >> 8) & 0xFF);  // Green
-            byteData[j++] = (byte) ((pixel >> 16) & 0xFF); // Red
+            byteData[byteIndex++] = (byte) (pixel & 0xFF);         // Blue
+            byteData[byteIndex++] = (byte) ((pixel >> 8) & 0xFF);  // Green
+            byteData[byteIndex++] = (byte) ((pixel >> 16) & 0xFF); // Red
         }
 
         mat.put(0, 0, byteData);
-
         return mat;
     }
 
