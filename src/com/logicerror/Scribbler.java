@@ -222,7 +222,7 @@ public class Scribbler {
         robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);  // Release mouse
 
         try {
-            Thread.sleep(robotDelay);
+            Thread.sleep(robotDelay+12);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

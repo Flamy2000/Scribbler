@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.List;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -85,6 +86,7 @@ public class ColorApproximation {
     }
 
     private static final int BATCH_SIZE = 5000; // Adjust batch size as needed
+    private static final int THREAD_COUNT = 4;
 
     public Picture approximateColorsPicture() {
         // Get all colors in image
@@ -101,7 +103,10 @@ public class ColorApproximation {
         final int[] tasksCompleted = {0}; // Initialize the completed tasks counter
         updatePercentageComplete(tasksCompleted[0], totalTasks);
 
-        try (ExecutorService executor = Executors.newFixedThreadPool(4)) { // Adjust thread pool size as needed
+        try (ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT)) { // Adjust thread pool size as needed
+
+            // Define a list to hold the tasks for both loops
+            List<Callable<Void>> tasks = new ArrayList<>();
 
             // Calculate closest matches for unique colors in parallel
             for (int i = 0; i < totalUniqueColors; i += BATCH_SIZE) {
@@ -115,6 +120,15 @@ public class ColorApproximation {
                     }
                 });
             }
+
+            executor.shutdown();
+            while (!executor.isTerminated()) {
+                // Wait for all tasks to finish
+            }
+
+        }
+
+        try(ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT)) {
 
             // Set colors for the entire image
             for (int i = 0; i < imgColors.length; i += BATCH_SIZE) {
@@ -134,6 +148,7 @@ public class ColorApproximation {
                 // Wait for all tasks to finish
             }
         }
+
 
 
         // Ensure the progress reaches 100% when all tasks are completed

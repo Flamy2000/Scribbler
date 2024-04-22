@@ -13,8 +13,8 @@ public class Main {
 //        scribbler.testBounds();
 
 
-        Picture pic = new Picture(System.getProperty("user.dir") + "\\src\\res\\img\\SampleImages\\forestFireRC.png");
-//        pic.scalePercent(0.25f, 0.25f);
+        Picture pic = new Picture(System.getProperty("user.dir") + "\\src\\res\\img\\SampleImages\\forestFire.jpg");
+        pic.scalePercent(0.25f, 0.25f);
 
 //        pic.degrade(2f);
 
@@ -29,7 +29,7 @@ public class Main {
 
 
         scribbler.setOffset(200, 267);
-        scribbler.setRobotDelay(5);
+        scribbler.setRobotDelay(3);
         Thread.sleep(1500);
         scribbler.printPicture(approxPic);
 
